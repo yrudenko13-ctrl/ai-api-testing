@@ -1,0 +1,59 @@
+name: Petstore CRUD regression
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    name: Run Newman
+    runs-on: ubuntu-latest
+    outputs:
+      pages_artifact: ${{ steps.pages_artifact.outcome }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Run CRUD regression
+        run: npm test
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: petstore-html-report
+          path: reports/html/index.html
+          if-no-files-found: ignore
+      - name: Package report for GitHub Pages
+        id: pages_artifact
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('reports/html/index.html') != '' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/html
+
+  deploy:
+    name: Publish report to GitHub Pages
+    needs: regression
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.regression.outputs.pages_artifact == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: petstore-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy HTML report
+        id: deployment
+        uses: actions/deploy-pages@v4
