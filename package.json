@@ -1,0 +1,12 @@
+{
+  "name": "petstore-crud-regression",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Swagger Petstore v3 CRUD regression with Postman and Newman",
+  "scripts": {
+    "test": "newman run postman/Petstore_CRUD.postman_collection.json --environment postman/Petstore.postman_environment.json --reporters cli,json,junit --reporter-json-export reports/newman.json --reporter-junit-export reports/newman.xml"
+  },
+  "devDependencies": {
+    "newman": "6.2.2"
+  }
+}
